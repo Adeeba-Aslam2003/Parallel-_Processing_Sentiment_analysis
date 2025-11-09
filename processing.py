@@ -1,34 +1,45 @@
-import re
-import nltk
-from nltk.sentiment import SentimentIntensityAnalyzer
+import pandas as pd
+from textblob import TextBlob
+from transformers import pipeline
 
-# One-time download (safe if already present)
-try:
-    nltk.data.find("sentiment/vader_lexicon.zip")
-except LookupError:
-    nltk.download("vader_lexicon")
+# Load Hugging Face model (DistilBERT fine-tuned for sentiment)
+_sentiment_model = pipeline("sentiment-analysis")
 
-_sia = SentimentIntensityAnalyzer()
-
-def _clean(text: str) -> str:
-    text = re.sub(r"http\S+|www\S+|https\S+", "", text, flags=re.MULTILINE)
-    text = re.sub(r"[@#]\w+", "", text)
-    return text.strip()
-
-def analyze_sentiment(text: str):
-    """
-    Returns: (label: 'positive'|'neutral'|'negative', confidence: 0..1)
-    """
-    text = _clean(text or "")
-    scores = _sia.polarity_scores(text)
-    comp = scores["compound"]
-    if comp >= 0.05:
-        label = "positive"
-        conf = comp
-    elif comp <= -0.05:
-        label = "negative"
-        conf = -comp
+def analyze_textblob(text: str):
+    if not text.strip():
+        return "neutral", 0.0
+    analysis = TextBlob(text)
+    polarity = analysis.sentiment.polarity
+    if polarity > 0:
+        return "positive", polarity
+    elif polarity < 0:
+        return "negative", -polarity
     else:
-        label = "neutral"
-        conf = 1.0 - abs(comp)
-    return label, float(conf)
+        return "neutral", 0.0
+
+def analyze_llm(text: str):
+    if not text.strip():
+        return "neutral", 0.0
+    result = _sentiment_model(text)[0]
+    label = result["label"].lower()
+    score = float(result["score"])
+    return label, score
+
+def process_csv(file):
+    """Read CSV and analyze sentiments using both models"""
+    df = pd.read_csv(file)
+    if "text" not in df.columns:
+        raise ValueError("CSV must contain a column named 'text'")
+    
+    results = []
+    for t in df["text"].astype(str):
+        tb_label, tb_score = analyze_textblob(t)
+        llm_label, llm_score = analyze_llm(t)
+        results.append({
+            "text": t,
+            "TextBlob Sentiment": tb_label,
+            "TextBlob Confidence": tb_score,
+            "LLM Sentiment": llm_label,
+            "LLM Confidence": llm_score
+        })
+    return pd.DataFrame(results)
