@@ -6,20 +6,16 @@ st.set_page_config(page_title="Sentiment Analysis App", page_icon="💬", layout
 
 # ---- helper so it works on every Streamlit version ----
 def safe_rerun():
-    """Call st.rerun if available; fall back to st.experimental_rerun; else do nothing."""
     if hasattr(st, "rerun"):
         st.rerun()
     elif hasattr(st, "experimental_rerun"):
         st.experimental_rerun()
 
-# ---- session state for login ----
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# ---- LOGIN SCREEN ----
 if not st.session_state.logged_in:
     st.title("🔐 Sentiment Analysis Login")
-
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
@@ -27,11 +23,9 @@ if not st.session_state.logged_in:
         if login_user(username, password):
             st.session_state.logged_in = True
             st.success("✅ Login successful!")
-            safe_rerun()  # switch to the app screen
+            safe_rerun()
         else:
             st.error("❌ Invalid credentials")
-
-# ---- APP SCREEN ----
 else:
     st.title("💭 Sentiment Analysis Using Parallel Processing")
 
@@ -51,6 +45,3 @@ else:
         if st.button("Logout", type="secondary", use_container_width=True):
             st.session_state.logged_in = False
             safe_rerun()
-
-# (Optional) show version to confirm you’re on the running build
-st.caption(f"Streamlit version: {st.__version__}")
