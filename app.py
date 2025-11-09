@@ -1,43 +1,35 @@
-import streamlit as st
-from processing import analyze_sentiment
-from auth import login_user
-
-st.set_page_config(page_title="Sentiment Analysis App", page_icon="💬", layout="centered")
-
-def render_login() -> None:
-    st.title("🔐 Sentiment Analysis Login")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if login_user(username, password):
-            st.session_state.logged_in = True
-            st.success("✅ Login successful!")
-            st.rerun()
-        else:
-            st.error("❌ Invalid credentials")
-
 def render_app() -> None:
     st.title("💭 Sentiment Analysis Using Parallel Processing")
-    text_input = st.text_area("Enter text to analyze sentiment:", height=150)
-    if st.button("Analyze Sentiment"):
-        if text_input.strip():
-            with st.spinner("Analyzing sentiment..."):
-                sentiment, confidence = analyze_sentiment(text_input)
-                st.success(f"**Sentiment:** {sentiment}")
-                st.write(f"**Confidence:** {confidence:.2f}")
-        else:
-            st.warning("⚠️ Please enter some text to analyze.")
+    st.write("Compare **TextBlob** and **LLM Sentiment Models**")
+
+    option = st.radio("Choose mode:", ["Single Text", "Upload CSV"], horizontal=True)
+
+    if option == "Single Text":
+        text_input = st.text_area("Enter text to analyze sentiment:", height=150)
+        if st.button("Analyze Sentiment"):
+            if text_input.strip():
+                with st.spinner("Analyzing sentiment..."):
+                    from processing import analyze_textblob, analyze_llm
+                    tb_label, tb_conf = analyze_textblob(text_input)
+                    llm_label, llm_conf = analyze_llm(text_input)
+                    st.subheader("Results:")
+                    st.write(f"**TextBlob:** {tb_label} ({tb_conf:.2f})")
+                    st.write(f"**LLM:** {llm_label} ({llm_conf:.2f})")
+            else:
+                st.warning("⚠️ Please enter some text to analyze.")
+
+    else:
+        st.subheader("📂 Upload CSV file")
+        uploaded = st.file_uploader("Upload CSV with a 'text' column", type=["csv"])
+        if uploaded:
+            from processing import process_csv
+            with st.spinner("Processing dataset..."):
+                df_result = process_csv(uploaded)
+                st.success("✅ Analysis complete!")
+                st.dataframe(df_result)
+                csv_out = df_result.to_csv(index=False).encode("utf-8")
+                st.download_button("📥 Download results", csv_out, "sentiment_results.csv", "text/csv")
+
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
-
-def main() -> None:
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-    if not st.session_state.logged_in:
-        render_login()
-    else:
-        render_app()
-
-if __name__ == "__main__":
-    main()
