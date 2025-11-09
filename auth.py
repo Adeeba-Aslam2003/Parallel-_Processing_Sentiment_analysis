@@ -14,8 +14,13 @@ _DEMO_PASS  = "Adeeba@123"
 def _creds_from_secrets() -> Tuple[str, str]:
     """Prefer Streamlit cloud secrets if available, else fallback to defaults."""
     if st is not None and hasattr(st, "secrets"):
-        email = st.secrets.get("demo_email", _DEMO_EMAIL)
-        passwd = st.secrets.get("demo_password", _DEMO_PASS)
+       if "demo" in st.secrets:
+    email = st.secrets["demo"].get("email", _DEMO_EMAIL)
+    passwd = st.secrets["demo"].get("password", _DEMO_PASS)
+else:
+    email = st.secrets.get("demo_email", _DEMO_EMAIL)
+    passwd = st.secrets.get("demo_password", _DEMO_PASS)
+
         return str(email), str(passwd)
     return _DEMO_EMAIL, _DEMO_PASS
 
