@@ -1,19 +1,9 @@
-from typing import Tuple
-try:
-    import streamlit as st
-except Exception:
-    st = None
+# auth.py
+# Simple email/password authentication
 
-_DEMO_EMAIL = "adeebaslam054@gmail.com"
-_DEMO_PASS  = "Adeeba@123"
-
-def _creds_from_secrets() -> Tuple[str, str]:
-    if st is not None and hasattr(st, "secrets"):
-        email = st.secrets.get("demo_email", _DEMO_EMAIL)
-        passwd = st.secrets.get("demo_password", _DEMO_PASS)
-        return str(email), str(passwd)
-    return _DEMO_EMAIL, _DEMO_PASS
+ALLOWED_EMAIL = "adeebaslam054@gmail.com"
+ALLOWED_PASS  = "Adeeba@123"
 
 def login_user(email: str, password: str) -> bool:
-    demo_email, demo_pass = _creds_from_secrets()
-    return str(email).strip().lower() == demo_email.lower() and str(password) == demo_pass
+    """Return True if email & password match."""
+    return str(email).strip().lower() == ALLOWED_EMAIL and str(password) == ALLOWED_PASS
