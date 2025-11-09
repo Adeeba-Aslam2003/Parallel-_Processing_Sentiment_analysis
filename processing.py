@@ -2,10 +2,14 @@ import pandas as pd
 from textblob import TextBlob
 from transformers import pipeline
 
-# Load Hugging Face model (DistilBERT fine-tuned for sentiment)
+# Load the LLM model (Hugging Face DistilBERT)
 _sentiment_model = pipeline("sentiment-analysis")
 
-def analyze_textblob(text: str):
+def analyze_sentiment(text):
+    """Fallback function name kept for compatibility"""
+    return analyze_textblob(text)
+
+def analyze_textblob(text):
     if not text.strip():
         return "neutral", 0.0
     analysis = TextBlob(text)
@@ -17,7 +21,7 @@ def analyze_textblob(text: str):
     else:
         return "neutral", 0.0
 
-def analyze_llm(text: str):
+def analyze_llm(text):
     if not text.strip():
         return "neutral", 0.0
     result = _sentiment_model(text)[0]
@@ -26,10 +30,10 @@ def analyze_llm(text: str):
     return label, score
 
 def process_csv(file):
-    """Read CSV and analyze sentiments using both models"""
+    """Process uploaded CSV with both models"""
     df = pd.read_csv(file)
     if "text" not in df.columns:
-        raise ValueError("CSV must contain a column named 'text'")
+        raise ValueError("CSV must contain a 'text' column")
     
     results = []
     for t in df["text"].astype(str):
