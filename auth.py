@@ -1,27 +1,27 @@
-import streamlit as st
+# auth.py
+# Simple demo authentication. You can switch to Streamlit secrets anytime.
 
-# ✅ Simple login authentication (demo purpose)
-def check_login():
-    # You can replace this with a database or .streamlit/secrets.toml later
-    users = {"admin": "1234", "adeeba": "2003"}
+from typing import Tuple
+try:
+    import streamlit as st
+except Exception:  # when running outside Streamlit
+    st = None
 
-    # Store login state in session
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
+# Default demo creds (fallback)
+_DEMO_EMAIL = "adeebaslam054@gmail.com"
+_DEMO_PASS  = "Adeeba@123"
 
-    # If not logged in, show login form
-    if not st.session_state.logged_in:
-        st.title("🔐 Login Page")
+def _creds_from_secrets() -> Tuple[str, str]:
+    """Prefer Streamlit cloud secrets if available, else fallback to defaults."""
+    if st is not None and hasattr(st, "secrets"):
+        email = st.secrets.get("demo_email", _DEMO_EMAIL)
+        passwd = st.secrets.get("demo_password", _DEMO_PASS)
+        return str(email), str(passwd)
+    return _DEMO_EMAIL, _DEMO_PASS
 
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-
-        if st.button("Login"):
-            if username in users and users[username] == password:
-                st.session_state.logged_in = True
-                st.success("✅ Login successful!")
-                st.experimental_rerun()
-            else:
-                st.error("❌ Invalid username or password")
-
-        st.stop()  # Stop execution until login succeeds
+def login_user(email: str, password: str) -> bool:
+    """
+    Returns True if the provided credentials match the configured demo credentials.
+    """
+    demo_email, demo_pass = _creds_from_secrets()
+    return str(email).strip().lower() == demo_email.lower() and str(password) == demo_pass
