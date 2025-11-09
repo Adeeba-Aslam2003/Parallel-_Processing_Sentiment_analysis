@@ -1,30 +1,15 @@
-# 💬 Parallel Processing Sentiment Analysis
+# Parallel Processing Sentiment Analysis (UI)
 
-This project performs **sentiment analysis on tweets** using **parallel processing** to speed up text data analysis.  
-It also includes a **Streamlit UI** where users can upload data, analyze sentiment, and view the results interactively.
+Wizard-style Streamlit app with login, CSV/Excel upload, preprocessing, and model comparison:
+- **TextBlob** vs a simple **LLM-like heuristic**
+- Download results
+- Optional email sender (via secrets)
 
----
+## Login
+- Email: `adeebaslam054@gmail.com`
+- Password: `Adeeba@123`
 
-## 🚀 Features
-- User-friendly **Streamlit web interface**
-- Load and analyze tweets efficiently
-- Uses **machine learning (Naive Bayes)** for sentiment prediction
-- Parallelized processing for faster computation
-- Visual charts for sentiment distribution
-
----
-
-## 🧠 Technologies Used
-- **Python**
-- **Streamlit**
-- **Pandas**
-- **Scikit-learn**
-- **NumPy**
-- **TextBlob**
-
----
-
-## ⚙️ How to Run
-1. Install required packages:
-   ```bash
-   pip install -r requirements.txt
+## Run locally
+```bash
+pip install -r requirements.txt
+streamlit run app.py
