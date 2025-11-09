@@ -1,3 +1,12 @@
+import streamlit as st
+st.set_page_config(page_title="Sentiment App")
+
+try:
+    from processing import analyze_sentiment
+    from auth import login_user
+except Exception as e:
+    st.error(f"Startup error: {e}")
+
 def render_app() -> None:
     st.title("💭 Sentiment Analysis Using Parallel Processing")
     st.write("Compare **TextBlob** and **LLM Sentiment Models**")
