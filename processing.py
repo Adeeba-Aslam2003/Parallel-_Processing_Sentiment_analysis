@@ -1,73 +1,72 @@
 # processing.py
+import re
 import pandas as pd
 from textblob import TextBlob
 
-# ---- Lazy load LLM (only when used) ----
-_MODEL = None
-_LLMDONE = False
+# ---------- Text cleaning ----------
+def clean_text(text: str) -> str:
+    if not isinstance(text, str):
+        text = str(text)
+    text = text.lower()
+    text = re.sub(r"http\S+|www\S+", "", text)
+    text = re.sub(r"[@#]\w+", "", text)
+    text = re.sub(r"[^a-z\s]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
-def _load_llm():
-    """Try to load a small HuggingFace sentiment pipeline on first use."""
-    global _MODEL, _LLMDONE
-    if _LLMDONE:
-        return _MODEL
-    try:
-        from transformers import pipeline
-        # default is distilbert-base-uncased-finetuned-sst-2-english
-        _MODEL = pipeline("sentiment-analysis")
-    except Exception:
-        _MODEL = None
-    _LLMDONE = True
-    return _MODEL
-
-# ---- Single text analyzers ----
+# ---------- TextBlob sentiment ----------
 def analyze_textblob(text: str):
-    text = (text or "").strip()
-    if not text:
-        return "neutral", 0.0
-    pol = TextBlob(text).sentiment.polarity
-    if pol > 0:
-        return "positive", float(pol)
-    if pol < 0:
-        return "negative", float(-pol)
-    return "neutral", 0.0
+    """Return (label, polarity in [-1,1])."""
+    tb = TextBlob(text)
+    polarity = float(tb.sentiment.polarity)
+    if polarity > 0.05:
+        label = "positive"
+    elif polarity < -0.05:
+        label = "negative"
+    else:
+        label = "neutral"
+    return label, polarity
 
+# ---------- Optional: LLM sentiment (fallback = simple heuristic) ----------
 def analyze_llm(text: str):
-    text = (text or "").strip()
-    if not text:
+    """
+    If you later add an API key in Streamlit secrets (OPENAI_API_KEY),
+    you can replace this with a real LLM call. For now we use a small
+    heuristic so the app works out of the box.
+    """
+    txt = text.lower()
+    pos_words = ["good", "great", "excellent", "love", "happy", "fantastic", "awesome"]
+    neg_words = ["bad", "terrible", "hate", "sad", "awful", "worst", "angry"]
+
+    score = 0
+    for w in pos_words:
+        if w in txt: score += 1
+    for w in neg_words:
+        if w in txt: score -= 1
+
+    if score > 0:
+        return "positive", min(1.0, 0.1 * score)
+    elif score < 0:
+        return "negative", max(-1.0, 0.1 * score)
+    else:
         return "neutral", 0.0
-    model = _load_llm()
-    if model is None:
-        # LLM not available; fall back
-        return "unavailable", 0.0
-    r = model(text)[0]
-    return r["label"].lower(), float(r["score"])
 
-# Keep this name because your app imports it
-def analyze_sentiment(text: str):
-    # Default to TextBlob; your UI can still call analyze_llm for compare
-    return analyze_textblob(text)
+# ---------- CSV/Excel pipeline ----------
+def process_dataframe(df: pd.DataFrame, text_col: str) -> pd.DataFrame:
+    out = df.copy()
+    out["clean_text"] = out[text_col].astype(str).apply(clean_text)
 
-# ---- CSV processing (compare TextBlob vs LLM) ----
-def process_csv(file_like):
-    """
-    Expects a CSV with a 'text' column. Returns a DataFrame:
-    [text, TextBlob Sentiment, TextBlob Confidence, LLM Sentiment, LLM Confidence]
-    If LLM not available, LLM columns are 'unavailable'/0.0.
-    """
-    df = pd.read_csv(file_like)
-    if "text" not in df.columns:
-        raise ValueError("CSV must contain a 'text' column")
+    tb_labels, tb_scores = [], []
+    llm_labels, llm_scores = [], []
 
-    out = []
-    for t in df["text"].astype(str):
-        tb_s, tb_c = analyze_textblob(t)
-        llm_s, llm_c = analyze_llm(t)
-        out.append({
-            "text": t,
-            "TextBlob Sentiment": tb_s,
-            "TextBlob Confidence": tb_c,
-            "LLM Sentiment": llm_s,
-            "LLM Confidence": llm_c,
-        })
-    return pd.DataFrame(out)
+    for t in out["clean_text"]:
+        l1, s1 = analyze_textblob(t)
+        l2, s2 = analyze_llm(t)
+        tb_labels.append(l1); tb_scores.append(s1)
+        llm_labels.append(l2); llm_scores.append(s2)
+
+    out["textblob_label"] = tb_labels
+    out["textblob_score"] = tb_scores
+    out["llm_label"] = llm_labels
+    out["llm_score"] = llm_scores
+    return out
